@@ -139,4 +139,27 @@ describe("recommend", () => {
       recommend(d, 1, input, { minPositionShare: 0 }).map((r) => r.heroId),
     ).toContain(2);
   });
+
+  it("minPickShare отсеивает редкие пики на позиции", () => {
+    const d: BracketData = {
+      overall: {
+        1: { games: 20000, wins: 10000 },
+        2: { games: 1000, wins: 520 },
+      },
+      byPosition: {
+        ...noPositions,
+        1: {
+          1: { games: 10000, wins: 5000 },
+          2: { games: 1000, wins: 520 }, // ~9% всех игр на позиции
+        },
+      },
+      vs: {},
+      with: {},
+    };
+    const input = { allies: [], enemies: [] };
+    expect(recommend(d, 1, input).map((r) => r.heroId)).toEqual([2, 1]);
+    expect(
+      recommend(d, 1, input, { minPickShare: 0.1 }).map((r) => r.heroId),
+    ).toEqual([1]);
+  });
 });

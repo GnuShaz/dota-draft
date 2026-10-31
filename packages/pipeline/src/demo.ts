@@ -6,7 +6,7 @@ const [bracketArg, posArg, enemiesArg = "none", alliesArg = "none"] =
   process.argv.slice(2);
 if (!bracketArg || !posArg) {
   console.log('Использование: pnpm demo <ранг> <позиция 1-5> "<враги через запятую | none>" "<союзники | none>"');
-  console.log('Опции формулы: $env:OPTS = \'{"baseWeight":0.5}\'');
+  console.log('Опции формулы: $env:OPTS = \'{"minPickShare":0.003}\'');
   process.exit(1);
 }
 
@@ -27,6 +27,8 @@ const data = snap.brackets[bracketArg as Bracket];
 if (!data) throw new Error(`Нет ранга ${bracketArg}`);
 
 const position = Number(posArg) as Position;
+const posTable = data.byPosition[position] ?? {};
+const posTotal = Object.values(posTable).reduce((s, x) => s + x.games, 0);
 const opts: RecommendOptions = process.env.OPTS ? JSON.parse(process.env.OPTS) : {};
 if (process.env.OPTS) console.log("опции:", opts);
 
@@ -38,7 +40,8 @@ const res = recommend(
 );
 
 for (const r of res) {
-  const baseGames = data.byPosition[position]?.[r.heroId]?.games ?? 0;
+  const baseGames = posTable[r.heroId]?.games ?? 0;
+  const share = posTotal ? (baseGames / posTotal) * 100 : 0;
   const why = r.reasons
     .slice(0, 3)
     .map((x) => {
@@ -47,6 +50,6 @@ for (const r of res) {
     })
     .join(", ");
   console.log(
-    `${(r.winProb * 100).toFixed(1)}% (база ${(r.baseWinProb * 100).toFixed(1)}%, ${baseGames} игр)  ${names.get(r.heroId)}  ${why}`,
+    `${(r.winProb * 100).toFixed(1)}% (база ${(r.baseWinProb * 100).toFixed(1)}%, ${baseGames} игр, ${share.toFixed(2)}% пиков)  ${names.get(r.heroId)}  ${why}`,
   );
 }

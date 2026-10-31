@@ -49,6 +49,7 @@ export interface RecommendOptions {
   minPairGames?: number; // ниже порога вклад пары = 0
   minBaselineGames?: number; // герои с меньшим числом игр на позиции не рекомендуем
   minPositionShare?: number; // доля игр героя на этой позиции от всех его игр (0..1)
+  minPickShare?: number; // доля игр героя от всех игр на этой позиции (0..1)
   enemyWeight?: number;
   allyWeight?: number;
   baseWeight?: number;

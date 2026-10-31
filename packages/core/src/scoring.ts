@@ -16,6 +16,7 @@ export const DEFAULT_OPTIONS: Required<RecommendOptions> = {
   minPairGames: 100,
   minBaselineGames: 500,
   minPositionShare: 0.05,
+  minPickShare: 0.005,
   enemyWeight: 1,
   allyWeight: 0.7,
   baseWeight: 0.7,
@@ -42,11 +43,13 @@ export function recommend(
   const results: Recommendation[] = [];
 
   const posTable: Record<HeroId, PairStat> = data.byPosition[position] ?? {};
+  const posTotal = Object.values(posTable).reduce((sum, s) => sum + s.games, 0);
 
   for (const [idStr, posStat] of Object.entries(posTable)) {
     const heroId = Number(idStr);
     if (taken.has(heroId) || posStat.games < o.minBaselineGames) continue;
 
+    // Герой почти не играется на этой позиции: его матчапы посчитаны по другим ролям.
     const overallStat = data.overall[heroId];
     if (
       overallStat &&
@@ -55,6 +58,9 @@ export function recommend(
     ) {
       continue;
     }
+
+    // Редкий пик на позиции: статистика отражает узких специалистов, а не героя.
+    if (posTotal > 0 && posStat.games / posTotal < o.minPickShare) continue;
 
     // Позиционная база: с неё стартуем. Общая база: от неё меряем вклад пар,
     // потому что матчапы посчитаны по всем позициям сразу.
