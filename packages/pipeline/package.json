@@ -1,0 +1,7 @@
+{
+  "name": "@dota-draft/pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@dota-draft/core": "workspace:*" }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "dota-draft",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p packages/core && tsc -p packages/pipeline",
+    "probe": "tsx packages/pipeline/src/probe.ts",
+    "probe:stratz": "tsx packages/pipeline/src/probe-stratz.ts",
+    "probe:schema": "tsx packages/pipeline/src/probe-schema.ts",
+    "probe:types": "tsx packages/pipeline/src/probe-types.ts",
+    "probe:semantics": "tsx packages/pipeline/src/probe-semantics.ts",
+    "probe:week": "tsx packages/pipeline/src/probe-week.ts",
+    "snapshot": "tsx packages/pipeline/src/build-snapshot.ts",
+    "demo": "tsx packages/pipeline/src/demo.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
