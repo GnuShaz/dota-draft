@@ -3,3 +3,4 @@ dist
 .env
 data/snapshot.json
 packages/web/public/data
+packages/web/public/ranks

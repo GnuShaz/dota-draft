@@ -164,3 +164,31 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+/* Переключатель языка */
+.lang { display: flex; padding: 2px; border-radius: 6px; background: var(--raised); }
+.lang button { padding: 6px 11px; border-radius: 4px; font-size: 13px; font-weight: 500; color: var(--ink-dim); transition: background 0.15s, color 0.15s; }
+.lang button:hover { color: var(--ink); }
+.lang button.on { background: var(--ink); color: var(--ground); }
+
+/* Медали рангов (картинки), те же состояния, что у запасных SVG */
+.medal { display: block; object-fit: contain; }
+.rank-group img { transition: opacity 0.15s; }
+.rank-group:not(.on) img { opacity: 0.5; }
+.rank-group:hover img { opacity: 1; }
+
+/* Подвал */
+.foot { display: grid; gap: 10px; padding: 24px clamp(16px, 3vw, 48px) 28px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-dim); }
+.foot p { margin: 0; max-width: 90ch; }
+.foot-main { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 32px; }
+.foot nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
+.foot a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.foot a:hover { text-decoration-color: var(--gain); }
+.age { padding: 1px 7px; border: 1px solid var(--ink-dim); border-radius: 4px; font-size: 12px; }
+
+/* Страницы документов */
+.legal { flex: 1; width: 100%; max-width: 78ch; padding: 28px clamp(16px, 3vw, 48px) 48px; }
+.legal .back { color: var(--ink-dim); text-decoration: underline; text-underline-offset: 3px; }
+.legal h1 { margin: 16px 0 4px; font: 700 26px "Unbounded", sans-serif; }
+.legal h2 { margin: 28px 0 8px; font-size: 17px; }
+.legal p { margin: 0 0 10px; }
+.legal .meta { font-size: 13px; color: var(--ink-dim); }

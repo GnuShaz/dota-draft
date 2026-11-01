@@ -10,28 +10,26 @@ import type {
   Recommendation,
 } from "@dota-draft/core";
 import { Portrait, searchHeroes } from "./heroes";
+import type { Hero } from "./heroes";
 import { GROUPS, RankMedal } from "./ranks";
-import { POSITIONS, effectText, fmt, positionName, summary, verdictText } from "./copy";
+import { POSITION_IDS, effectText, fmt, positionName, summary, verdictText } from "./copy";
+import { useI18n } from "./i18n";
+import type { Key, Lang } from "./i18n";
 
 type Team = "ally" | "enemy";
 const MAX: Record<Team, number> = { ally: 4, enemy: 5 };
 const other = (t: Team): Team => (t === "enemy" ? "ally" : "enemy");
+const LANGS: Lang[] = ["ru", "en"];
+const BASE = import.meta.env.BASE_URL;
 
-function Slot({
-  hero,
-  tone,
-  onClick,
-}: {
-  hero?: HeroMeta;
-  tone: Team;
-  onClick: () => void;
-}) {
+function Slot({ hero, tone, onClick }: { hero?: HeroMeta; tone: Team; onClick: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       className={`slot ${tone} ${hero ? "filled" : ""}`}
       onClick={onClick}
-      aria-label={hero ? `Убрать героя ${hero.localizedName}` : "Свободный слот, добавить героя"}
+      aria-label={hero ? t("removeHero", { name: hero.localizedName }) : t("emptySlot")}
     >
       <AnimatePresence initial={false}>
         {hero && (
@@ -52,6 +50,7 @@ function Slot({
 }
 
 function YouSlot({ preview, role }: { preview?: HeroMeta; role: string }) {
+  const { t } = useI18n();
   return (
     <div className="slot you">
       <AnimatePresence initial={false}>
@@ -69,7 +68,7 @@ function YouSlot({ preview, role }: { preview?: HeroMeta; role: string }) {
         )}
       </AnimatePresence>
       <span className="you-label">
-        <b>Вы</b>
+        <b>{t("you")}</b>
         <small>{role}</small>
       </span>
     </div>
@@ -103,6 +102,7 @@ function EffectRow({
   reason?: Reason;
   scale: number;
 }) {
+  const { t, lang } = useI18n();
   const effect = reason?.ppEffect;
   return (
     <div className="effect">
@@ -110,13 +110,15 @@ function EffectRow({
       <div>
         <span className="name">{hero.localizedName}</span>
         <small>
-          {effectText(kind, effect)}
-          {reason ? ` (выборка: ${reason.games.toLocaleString("ru-RU")})` : ""}
+          {effectText(t, kind, effect)}
+          {reason
+            ? ` (${t("sample", { n: reason.games.toLocaleString(lang === "ru" ? "ru-RU" : "en-US") })})`
+            : ""}
         </small>
       </div>
       {effect === undefined ? <span /> : <Bar value={effect} scale={scale} />}
       <span className={`val ${effect === undefined ? "none" : effect >= 0 ? "gain" : "loss"}`}>
-        {effect === undefined ? "нет данных" : `${fmt(effect)}%`}
+        {effect === undefined ? t("noDataShort") : `${fmt(effect)}%`}
       </span>
     </div>
   );
@@ -137,6 +139,7 @@ function Detail({
   allies: number[];
   byId: Map<number, HeroMeta>;
 }) {
+  const { t } = useI18n();
   const nameOf = (id: number) => byId.get(id)?.localizedName ?? String(id);
   const bonus = (rec.winProb - rec.baseWinProb) * 100;
   const scale = Math.max(5, ...rec.reasons.map((x) => Math.abs(x.ppEffect)));
@@ -171,33 +174,29 @@ function Detail({
         <div>
           <h2>{hero.localizedName}</h2>
           <p className="sub">
-            {positionName(position)}, обычно выигрывает {(rec.baseWinProb * 100).toFixed(1)}% игр
+            {t("detailRole", {
+              pos: positionName(t, position),
+              p: (rec.baseWinProb * 100).toFixed(1),
+            })}
           </p>
         </div>
         {enemies.length + allies.length > 0 && (
           <div className="bonus">
             <strong className={bonus >= 0 ? "gain" : "loss"}>{fmt(bonus)}%</strong>
-            <span>к винрейту от драфта</span>
+            <span>{t("bonusCaption")}</span>
           </div>
         )}
       </div>
 
-      <p className="lead">{verdictText(rec, enemies.length, allies.length, nameOf)}</p>
+      <p className="lead">{verdictText(t, rec, enemies.length, allies.length, nameOf)}</p>
 
       {enemies.length + allies.length === 0 ? (
-        <p className="empty">
-          Добавьте врагов и союзников, и здесь появится разбор: кого герой переигрывает и с кем
-          играет лучше всего.
-        </p>
+        <p className="empty">{t("emptyDraft")}</p>
       ) : (
         <>
-          {section("Против врагов", "vs", enemies)}
-          {section("С союзниками", "with", allies)}
-          <p className="note">
-            Бонус складывается из эффектов выше, а проценты означают пункты винрейта: было 50%,
-            стало 55%, это +5. Используйте его, чтобы сравнивать героев между собой. Это не шанс
-            победы: чем больше героев в драфте, тем оптимистичнее сумма.
-          </p>
+          {section(t("secVs"), "vs", enemies)}
+          {section(t("secWith"), "with", allies)}
+          <p className="note">{t("note")}</p>
         </>
       )}
     </motion.div>
@@ -205,6 +204,7 @@ function Detail({
 }
 
 export function App() {
+  const { t, lang, setLang } = useI18n();
   const [meta, setMeta] = useState<{ heroes: HeroMeta[] }>();
   const [bracket, setBracket] = useState<Bracket>("legend_ancient");
   const [data, setData] = useState<BracketData>();
@@ -217,13 +217,19 @@ export function App() {
   const [selectedId, setSelectedId] = useState<number>();
   const input = useRef<HTMLInputElement>(null);
 
+  const [ruNames, setRuNames] = useState<Record<string, string>>({});
+
   useEffect(() => {
-    fetch("/data/meta.json").then((r) => r.json()).then(setMeta);
+    fetch(`${BASE}data/meta.json`).then((r) => r.json()).then(setMeta);
+    fetch(`${BASE}data/names.ru.json`)
+      .then((r) => (r.ok ? r.json() : {}))
+      .then(setRuNames)
+      .catch(() => {}); // файла нет, остаются английские названия
   }, []);
 
   useEffect(() => {
     let stale = false;
-    fetch(`/data/${bracket}.json`)
+    fetch(`${BASE}data/${bracket}.json`)
       .then((r) => r.json())
       .then((d) => {
         if (!stale) setData(d);
@@ -235,7 +241,36 @@ export function App() {
 
   useEffect(() => setCursor(0), [query]);
 
-  const heroes = useMemo(() => meta?.heroes ?? [], [meta]);
+  // Печатайте где угодно: первая буква переводит фокус в поле поиска и попадает в него.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || e.key === " ") return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el === input.current) return;
+      if (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el instanceof HTMLSelectElement ||
+        el?.isContentEditable
+      ) {
+        return;
+      }
+      input.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const heroes = useMemo<Hero[]>(
+    () =>
+      (meta?.heroes ?? []).map((h) => ({
+        ...h,
+        en: h.localizedName,
+        ru: ruNames[h.id],
+        localizedName: lang === "ru" ? (ruNames[h.id] ?? h.localizedName) : h.localizedName,
+      })),
+    [meta, ruNames, lang],
+  );
   const byId = useMemo(
     () => new Map(heroes.map((h): [number, HeroMeta] => [h.id, h])),
     [heroes],
@@ -263,22 +298,22 @@ export function App() {
     setQuery("");
     input.current?.focus();
   };
-  const unpick = (t: Team, id: number) =>
-    setPicks((p) => ({ ...p, [t]: p[t].filter((x) => x !== id) }));
-  const focusTeam = (t: Team) => {
-    setTeam(t);
+  const unpick = (tm: Team, id: number) =>
+    setPicks((p) => ({ ...p, [tm]: p[tm].filter((x) => x !== id) }));
+  const focusTeam = (tm: Team) => {
+    setTeam(tm);
     input.current?.focus();
   };
 
-  const renderSlots = (t: Team) =>
-    Array.from({ length: MAX[t] }, (_, i) => {
-      const hero = byId.get(picks[t][i] ?? -1);
+  const renderSlots = (tm: Team) =>
+    Array.from({ length: MAX[tm] }, (_, i) => {
+      const hero = byId.get(picks[tm][i] ?? -1);
       return (
         <Slot
           key={i}
           hero={hero}
-          tone={t}
-          onClick={() => (hero ? unpick(t, hero.id) : focusTeam(t))}
+          tone={tm}
+          onClick={() => (hero ? unpick(tm, hero.id) : focusTeam(tm))}
         />
       );
     });
@@ -292,37 +327,54 @@ export function App() {
       <header className="top">
         <h1 className="wordmark">Dota Draft</h1>
 
-        <div className="ranks" role="group" aria-label="Ранг игроков">
-          {GROUPS.map((g) => (
+        <div className="ranks" role="group" aria-label={t("ranksLabel")}>
+          {GROUPS.map((g) => {
+            const label = g.ranks.map((r) => t(`rank${r.tier}` as Key)).join("–");
+            return (
+              <button
+                key={g.id}
+                type="button"
+                className={`rank-group ${g.id === bracket ? "on" : ""}`}
+                aria-pressed={g.id === bracket}
+                title={t("rankGroupHint")}
+                onClick={() => setBracket(g.id)}
+              >
+                <span className="medals">
+                  {g.ranks.map((r) => (
+                    <RankMedal key={r.id} rank={r} label={t(`rank${r.tier}` as Key)} />
+                  ))}
+                </span>
+                <small>{label}</small>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="poses" role="group" aria-label={t("posesLabel")}>
+          {POSITION_IDS.map((id) => (
             <button
-              key={g.id}
+              key={id}
               type="button"
-              className={`rank-group ${g.id === bracket ? "on" : ""}`}
-              aria-pressed={g.id === bracket}
-              title="Данные по двум соседним рангам объединены"
-              onClick={() => setBracket(g.id)}
+              className={`pos ${id === position ? "on" : ""}`}
+              aria-pressed={id === position}
+              onClick={() => setPosition(id)}
             >
-              <span className="medals">
-                {g.ranks.map((r) => (
-                  <RankMedal key={r.id} rank={r} />
-                ))}
-              </span>
-              <small>{g.label}</small>
+              <b>{id}</b>
+              {positionName(t, id)}
             </button>
           ))}
         </div>
 
-        <div className="poses" role="group" aria-label="Ваша позиция">
-          {POSITIONS.map((p) => (
+        <div className="lang" role="group" aria-label={t("langLabel")}>
+          {LANGS.map((l) => (
             <button
-              key={p.id}
+              key={l}
               type="button"
-              className={`pos ${p.id === position ? "on" : ""}`}
-              aria-pressed={p.id === position}
-              onClick={() => setPosition(p.id)}
+              className={l === lang ? "on" : ""}
+              aria-pressed={l === lang}
+              onClick={() => setLang(l)}
             >
-              <b>{p.id}</b>
-              {p.name}
+              {l.toUpperCase()}
             </button>
           ))}
         </div>
@@ -330,12 +382,16 @@ export function App() {
 
       <section className="draft">
         <div className="side ally">
-          <button type="button" className={`side-title ${team === "ally" ? "on" : ""}`} onClick={() => focusTeam("ally")}>
-            Ваша команда <span>{nAllies} из {MAX.ally}</span>
+          <button
+            type="button"
+            className={`side-title ${team === "ally" ? "on" : ""}`}
+            onClick={() => focusTeam("ally")}
+          >
+            {t("yourTeam")} <span>{t("countOf", { n: nAllies, m: MAX.ally })}</span>
           </button>
           <div className="slots">
             {renderSlots("ally")}
-            <YouSlot preview={selectedHero} role={positionName(position)} />
+            <YouSlot preview={selectedHero} role={positionName(t, position)} />
           </div>
         </div>
 
@@ -345,8 +401,8 @@ export function App() {
               ref={input}
               autoFocus
               value={query}
-              placeholder={team === "enemy" ? "Герой для врагов: pudge, am, sf" : "Герой для союзников: pudge, am, sf"}
-              aria-label="Поиск героя"
+              placeholder={team === "enemy" ? t("placeholderEnemy") : t("placeholderAlly")}
+              aria-label={t("searchAria")}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && results[cursor]) pick(results[cursor].id);
@@ -383,14 +439,16 @@ export function App() {
               </ul>
             )}
           </div>
-          <p className="hint">
-            Enter добавляет героя, Tab переключает команду, Backspace убирает последнего.
-          </p>
+          <p className="hint">{t("hint")}</p>
         </div>
 
         <div className="side enemy">
-          <button type="button" className={`side-title ${team === "enemy" ? "on" : ""}`} onClick={() => focusTeam("enemy")}>
-            Враги <span>{nEnemies} из {MAX.enemy}</span>
+          <button
+            type="button"
+            className={`side-title ${team === "enemy" ? "on" : ""}`}
+            onClick={() => focusTeam("enemy")}
+          >
+            {t("enemies")} <span>{t("countOf", { n: nEnemies, m: MAX.enemy })}</span>
           </button>
           <div className="slots">{renderSlots("enemy")}</div>
         </div>
@@ -399,28 +457,24 @@ export function App() {
       <div className="stage">
         <section className="board">
           <div className="board-head">
-            <h2>{positionName(position)}: кого брать</h2>
+            <h2>{t("boardTitle", { pos: positionName(t, position) })}</h2>
             <label className="balance">
-              <span>Контрпики и связки</span>
+              <span>{t("balanceLeft")}</span>
               <input
                 type="range"
                 min={0.2}
                 max={1.2}
                 step={0.1}
                 value={baseWeight}
-                aria-label="Что важнее при выборе героя"
+                aria-label={t("balanceAria")}
                 onChange={(e) => setBaseWeight(Number(e.target.value))}
               />
-              <span>Сила героя в мете</span>
+              <span>{t("balanceRight")}</span>
             </label>
           </div>
 
-          {!data && <p className="empty">Загружаю данные ранга…</p>}
-          {data && rows.length === 0 && (
-            <p className="empty">
-              Для этой роли в выбранном ранге мало данных. Попробуйте другую роль или ранг.
-            </p>
-          )}
+          {!data && <p className="empty">{t("loading")}</p>}
+          {data && rows.length === 0 && <p className="empty">{t("noData")}</p>}
 
           <ul className="rows">
             <AnimatePresence mode="popLayout" initial={false}>
@@ -446,17 +500,17 @@ export function App() {
                       <Portrait hero={h} size="lg" />
                       <span className="who">
                         <b>{h.localizedName}</b>
-                        <small>обычно {(r.baseWinProb * 100).toFixed(1)}%</small>
+                        <small>{t("usually", { p: (r.baseWinProb * 100).toFixed(1) })}</small>
                       </span>
                       <span className="fit">
                         {nEnemies > 0 && (
                           <span>
-                            против врагов <b>{s.vsGood} из {nEnemies}</b>
+                            {t("vsEnemies")} <b>{t("countOf", { n: s.vsGood, m: nEnemies })}</b>
                           </span>
                         )}
                         {nAllies > 0 && (
                           <span>
-                            с союзниками <b>{s.wiGood} из {nAllies}</b>
+                            {t("withAllies")} <b>{t("countOf", { n: s.wiGood, m: nAllies })}</b>
                           </span>
                         )}
                       </span>

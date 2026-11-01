@@ -1,0 +1,66 @@
+name: Сборка и выкладка
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "30 5 * * *" # раз в сутки в 05:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10 # поставь тот же major, что показывает `pnpm -v` у тебя
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      - name: Собрать снапшот данных
+        run: pnpm snapshot
+        env:
+          STRATZ_TOKEN: ${{ secrets.STRATZ_TOKEN }}
+
+      - run: pnpm export:web
+
+      - name: Скачать медали рангов
+        run: pnpm ranks:fetch
+        continue-on-error: true # не вышло, сайт покажет запасные SVG-медали
+
+      - name: Собрать сайт
+        run: pnpm --filter @dota-draft/web build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

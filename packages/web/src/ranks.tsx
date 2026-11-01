@@ -1,21 +1,22 @@
+import { useState } from "react";
 import type { Bracket } from "@dota-draft/core";
 
 export interface RankDef {
   id: string;
-  name: string;
+  tier: number; // 1 = Рекрут (Herald), 8 = Титан (Immortal)
   group: Bracket;
-  color: string;
+  color: string; // только для запасных SVG-медалей
 }
 
 export const RANKS: RankDef[] = [
-  { id: "herald", name: "Рекрут", group: "herald_guardian", color: "#a08a6e" },
-  { id: "guardian", name: "Страж", group: "herald_guardian", color: "#b3ad9f" },
-  { id: "crusader", name: "Рыцарь", group: "crusader_archon", color: "#8fa8b5" },
-  { id: "archon", name: "Герой", group: "crusader_archon", color: "#63ad9f" },
-  { id: "legend", name: "Легенда", group: "legend_ancient", color: "#6b9bd6" },
-  { id: "ancient", name: "Властелин", group: "legend_ancient", color: "#9a7fd0" },
-  { id: "divine", name: "Божество", group: "divine_immortal", color: "#e3b04b" },
-  { id: "immortal", name: "Титан", group: "divine_immortal", color: "#e8705f" },
+  { id: "herald", tier: 1, group: "herald_guardian", color: "#a08a6e" },
+  { id: "guardian", tier: 2, group: "herald_guardian", color: "#b3ad9f" },
+  { id: "crusader", tier: 3, group: "crusader_archon", color: "#8fa8b5" },
+  { id: "archon", tier: 4, group: "crusader_archon", color: "#63ad9f" },
+  { id: "legend", tier: 5, group: "legend_ancient", color: "#6b9bd6" },
+  { id: "ancient", tier: 6, group: "legend_ancient", color: "#9a7fd0" },
+  { id: "divine", tier: 7, group: "divine_immortal", color: "#e3b04b" },
+  { id: "immortal", tier: 8, group: "divine_immortal", color: "#e8705f" },
 ];
 
 const GROUP_IDS: Bracket[] = [
@@ -25,10 +26,10 @@ const GROUP_IDS: Bracket[] = [
   "divine_immortal",
 ];
 
-export const GROUPS = GROUP_IDS.map((id) => {
-  const ranks = RANKS.filter((r) => r.group === id);
-  return { id, ranks, label: ranks.map((r) => r.name).join("–") };
-});
+export const GROUPS = GROUP_IDS.map((id) => ({
+  id,
+  ranks: RANKS.filter((r) => r.group === id),
+}));
 
 function Glyph({ id, color }: { id: string; color: string }) {
   const s = {
@@ -42,13 +43,7 @@ function Glyph({ id, color }: { id: string; color: string }) {
     case "herald":
       return <path d="M16 21 L24 29 L32 21" {...s} />;
     case "guardian":
-      return (
-        <path
-          d="M24 14 L33 17 V25 C33 30 29 33 24 35 C19 33 15 30 15 25 V17 Z"
-          {...s}
-          strokeWidth={2.5}
-        />
-      );
+      return <path d="M24 14 L33 17 V25 C33 30 29 33 24 35 C19 33 15 30 15 25 V17 Z" {...s} strokeWidth={2.5} />;
     case "crusader":
       return <path d="M24 14 V34 M16 22 H32" {...s} strokeWidth={3.5} />;
     case "archon":
@@ -90,25 +85,32 @@ function Glyph({ id, color }: { id: string; color: string }) {
       return (
         <>
           <rect x="17" y="17" width="14" height="14" {...s} strokeWidth={2.5} />
-          <rect
-            x="17"
-            y="17"
-            width="14"
-            height="14"
-            transform="rotate(45 24 24)"
-            {...s}
-            strokeWidth={2.5}
-          />
+          <rect x="17" y="17" width="14" height="14" transform="rotate(45 24 24)" {...s} strokeWidth={2.5} />
           <circle cx="24" cy="24" r="2.2" fill={color} />
         </>
       );
   }
 }
 
-export function RankMedal({ rank, size = 30 }: { rank: RankDef; size?: number }) {
+/** Настоящая медаль из /ranks/<tier>.png; если файла нет, рисуется запасная SVG-версия. */
+export function RankMedal({ rank, label, size = 30 }: { rank: RankDef; label: string; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  if (!failed) {
+    return (
+      <img
+        className="medal"
+        src={`${import.meta.env.BASE_URL}ranks/${rank.tier}.png`}
+        width={size}
+        height={size}
+        alt={label}
+        title={label}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" role="img" aria-label={rank.name}>
-      <title>{rank.name}</title>
+    <svg width={size} height={size} viewBox="0 0 48 48" role="img" aria-label={label}>
+      <title>{label}</title>
       <circle cx="24" cy="24" r="22" fill={rank.color} />
       <circle cx="24" cy="24" r="18.5" fill="#182026" />
       <Glyph id={rank.id} color={rank.color} />

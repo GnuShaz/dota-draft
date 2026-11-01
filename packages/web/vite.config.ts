@@ -1,4 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({ plugins: [react()] });
+// На GitHub Pages сайт живёт в подпапке /<имя-репозитория>/, путь приходит из workflow.
+export default defineConfig({
+  base: process.env.BASE_PATH ?? "/",
+  plugins: [react()],
+});

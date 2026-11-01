@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@dota-draft/core": "workspace:*",
+    "@fontsource/golos-text": "^5.3.0",
+    "@fontsource/unbounded": "^5.3.0",
     "motion": "^14.9.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

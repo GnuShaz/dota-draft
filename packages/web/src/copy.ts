@@ -1,20 +1,13 @@
 import type { Position, Recommendation } from "@dota-draft/core";
+import type { Key, T } from "./i18n";
 
-export const POSITIONS: { id: Position; name: string }[] = [
-  { id: 1, name: "Керри" },
-  { id: 2, name: "Мид" },
-  { id: 3, name: "Хардлейн" },
-  { id: 4, name: "Саппорт" },
-  { id: 5, name: "Фулл-саппорт" },
-];
+export const POSITION_IDS: Position[] = [1, 2, 3, 4, 5];
 
-export function positionName(p: Position): string {
-  return POSITIONS.find((x) => x.id === p)?.name ?? `Позиция ${p}`;
-}
+export const positionName = (t: T, p: Position): string => t(`pos${p}` as Key);
 
 export const fmt = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(1)}`;
 
-// Эффект меньше этого порога (в процентах винрейта) считаем незаметным.
+// Эффект меньше этого порога (в пунктах винрейта) считаем незаметным.
 export const NOTICEABLE = 0.5;
 
 export function summary(r: Recommendation) {
@@ -29,28 +22,27 @@ export function summary(r: Recommendation) {
 }
 
 export function verdictText(
+  t: T,
   r: Recommendation,
   enemies: number,
   allies: number,
   nameOf: (id: number) => string,
 ): string {
-  if (enemies + allies === 0) {
-    return "Драфта пока нет, поэтому герои идут по обычному винрейту на этой позиции.";
-  }
+  if (enemies + allies === 0) return t("verdictNoDraft");
   const s = summary(r);
   const parts: string[] = [];
-  if (enemies > 0) parts.push(`удобен против ${s.vsGood} из ${enemies} врагов`);
-  if (allies > 0) parts.push(`хорошо сочетается с ${s.wiGood} из ${allies} союзников`);
+  if (enemies > 0) parts.push(t("verdictVs", { n: s.vsGood, m: enemies }));
+  if (allies > 0) parts.push(t("verdictWith", { n: s.wiGood, m: allies }));
   const joined = parts.join(", ");
-  let text = joined.charAt(0).toUpperCase() + joined.slice(1) + ".";
-  if (s.vsBad.length) text += ` Трудно против: ${s.vsBad.map((x) => nameOf(x.heroId)).join(", ")}.`;
-  if (s.wiBad.length) text += ` Плохо сочетается с: ${s.wiBad.map((x) => nameOf(x.heroId)).join(", ")}.`;
-  return text;
+  const out = [joined.charAt(0).toUpperCase() + joined.slice(1) + "."];
+  if (s.vsBad.length) out.push(t("verdictHard", { names: s.vsBad.map((x) => nameOf(x.heroId)).join(", ") }));
+  if (s.wiBad.length) out.push(t("verdictPoorWith", { names: s.wiBad.map((x) => nameOf(x.heroId)).join(", ") }));
+  return out.join(" ");
 }
 
-export function effectText(kind: "vs" | "with", effect: number | undefined): string {
-  if (effect === undefined) return "Слишком мало игр, чтобы судить";
-  if (Math.abs(effect) < NOTICEABLE) return "Почти не влияет";
-  if (kind === "vs") return effect > 0 ? "Выигрывает у него чаще обычного" : "Проигрывает ему чаще обычного";
-  return effect > 0 ? "Вместе играют лучше обычного" : "Вместе играют хуже обычного";
+export function effectText(t: T, kind: "vs" | "with", effect: number | undefined): string {
+  if (effect === undefined) return t("effNoData");
+  if (Math.abs(effect) < NOTICEABLE) return t("effNone");
+  if (kind === "vs") return effect > 0 ? t("effVsPos") : t("effVsNeg");
+  return effect > 0 ? t("effWithPos") : t("effWithNeg");
 }
