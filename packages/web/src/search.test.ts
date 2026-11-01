@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import { searchHeroes } from "./search";
 import type { Hero } from "./search";
 
-// Русские названия в тесте условные, проверяется логика поиска.
 const h = (id: number, en: string, ru?: string): Hero => ({
   id,
   name: `npc_dota_hero_${id}`,
-  localizedName: ru ?? en,
+  localizedName: en,
   en,
   ru,
 });
@@ -37,7 +36,7 @@ describe("searchHeroes", () => {
     expect(names("анти")[0]).toBe("Anti-Mage");
   });
 
-  it("английское имя, набранное в русской раскладке, находится: «згвпу» это pudge", () => {
+  it("английское имя, набранное в русской раскладке: «згвпу» это pudge", () => {
     expect(names("згвпу")[0]).toBe("Pudge");
   });
 
@@ -51,5 +50,17 @@ describe("searchHeroes", () => {
 
   it("не предлагает уже выбранных героев", () => {
     expect(names("pudge", new Set([4]))).toEqual([]);
+  });
+
+  it("русское название из таблицы: «пудж»", () => {
+    expect(names("пудж")[0]).toBe("Pudge");
+  });
+
+  it("русские инициалы двух слов: «фв» это Faceless Void", () => {
+    expect(names("фв")[0]).toBe("Faceless Void");
+  });
+
+  it("«войд» ставит Faceless Void выше Void Spirit", () => {
+    expect(names("войд").slice(0, 2)).toEqual(["Faceless Void", "Void Spirit"]);
   });
 });

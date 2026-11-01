@@ -26,13 +26,12 @@
 
 Нужны Node 20 или новее и pnpm. Токен STRATZ бесплатный, его выдают на stratz.com/api.
 
-    git clone https://github.com/<ник>/dota-draft.git
+    git clone https://github.com/GnuShaz/dota-draft.git
     cd dota-draft
     pnpm install
 
     export STRATZ_TOKEN=...      # в PowerShell: $env:STRATZ_TOKEN = "..."
     pnpm snapshot                # собрать данные, занимает пару минут
-    pnpm names:fetch             # русские названия героев, нужен один раз
     pnpm export:web              # разложить данные для сайта
     pnpm dev
 

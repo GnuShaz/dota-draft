@@ -19,16 +19,16 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10 # поставь тот же major, что показывает `pnpm -v` у тебя
+      # Версия pnpm берётся из поля packageManager в package.json
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -44,14 +44,14 @@ jobs:
 
       - name: Скачать медали рангов
         run: pnpm ranks:fetch
-        continue-on-error: true # не вышло, сайт покажет запасные SVG-медали
+        continue-on-error: true # не вышло: сайт покажет запасные SVG-медали
 
       - name: Собрать сайт
         run: pnpm --filter @dota-draft/web build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: packages/web/dist
 
@@ -63,4 +63,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

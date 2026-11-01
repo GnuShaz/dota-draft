@@ -219,12 +219,8 @@ export function App() {
 
   const [ruNames, setRuNames] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+    useEffect(() => {
     fetch(`${BASE}data/meta.json`).then((r) => r.json()).then(setMeta);
-    fetch(`${BASE}data/names.ru.json`)
-      .then((r) => (r.ok ? r.json() : {}))
-      .then(setRuNames)
-      .catch(() => {}); // файла нет, остаются английские названия
   }, []);
 
   useEffect(() => {
@@ -262,14 +258,8 @@ export function App() {
   }, []);
 
   const heroes = useMemo<Hero[]>(
-    () =>
-      (meta?.heroes ?? []).map((h) => ({
-        ...h,
-        en: h.localizedName,
-        ru: ruNames[h.id],
-        localizedName: lang === "ru" ? (ruNames[h.id] ?? h.localizedName) : h.localizedName,
-      })),
-    [meta, ruNames, lang],
+    () => (meta?.heroes ?? []).map((h) => ({ ...h, en: h.localizedName })),
+    [meta],
   );
   const byId = useMemo(
     () => new Map(heroes.map((h): [number, HeroMeta] => [h.id, h])),

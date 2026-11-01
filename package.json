@@ -16,13 +16,14 @@
     "probe:week": "tsx packages/pipeline/src/probe-week.ts",
     "snapshot": "tsx packages/pipeline/src/build-snapshot.ts",
     "demo": "tsx packages/pipeline/src/demo.ts",
-    "ranks:fetch": "tsx packages/pipeline/src/fetch-ranks.ts",
-    "names:fetch": "tsx packages/pipeline/src/fetch-names.ts"
+    "ranks:fetch": "tsx packages/pipeline/src/fetch-ranks.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "packageManager": "pnpm@9.15.9"
+    
   }
 }
