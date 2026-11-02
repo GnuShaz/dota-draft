@@ -192,3 +192,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .legal h2 { margin: 28px 0 8px; font-size: 17px; }
 .legal p { margin: 0 0 10px; }
 .legal .meta { font-size: 13px; color: var(--ink-dim); }
+
+.cell { flex: 1 1 0; min-width: 0; max-width: 156px; display: grid; gap: 5px; }
+.cell .slot { width: 100%; max-width: none; }
+.role-tag { font-size: 12.5px; line-height: 1.2; text-align: center; color: var(--ink-dim); }
+.role-tag.unsure { font-style: italic; }
+.strip-note { max-width: 60ch; margin: 10px 0 0; font-size: 12.5px; color: var(--ink-dim); }
+.slot.active, .slot.filled.active { outline: 2px solid var(--team); outline-offset: -2px; }
+.effect .rl { margin-left: 8px; font-size: 12.5px; color: var(--ink-dim); }

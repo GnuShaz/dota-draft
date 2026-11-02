@@ -70,6 +70,13 @@ const ru = {
   dataBy: "Статистика матчей:",
   back: "Назад к сервису",
   updated: "Редакция от {date}",
+  placeholderAllySlot: "Герой для союзника на роли «{pos}»: pudge, am, sf",
+  hintRoles:
+    "Начните печатать имя героя. Enter добавляет, Tab переключает между союзниками и врагами, Backspace убирает последнего.",
+  allyRolesNote: "Союзники: роли известны из лобби. Нажмите на слот, чтобы выбрать, чьего героя вводите.",
+  enemyRolesNote: "Враги: роли определяются по статистике героев, это предположение.",
+  roleSure: "Роль определена на {p}%",
+  slotAlly: "Слот союзника, роль «{pos}»",
   legalNote: "",
 };
 
@@ -142,6 +149,13 @@ const en: Record<Key, string> = {
   dataBy: "Match statistics:",
   back: "Back to the app",
   updated: "Last updated: {date}",
+  placeholderAllySlot: "Hero for your teammate in the {pos} role: pudge, am, sf",
+  hintRoles:
+    "Start typing a hero name. Enter adds, Tab switches between allies and enemies, Backspace removes the last pick.",
+  allyRolesNote: "Allies: roles are known from the lobby. Click a slot to choose whose hero you are entering.",
+  enemyRolesNote: "Enemies: roles are estimated from hero statistics, so treat them as a guess.",
+  roleSure: "Role estimated at {p}%",
+  slotAlly: "Ally slot, {pos} role",
   legalNote: "Courtesy translation. In case of discrepancy the Russian version prevails.",
 };
 

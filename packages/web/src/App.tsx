@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { recommend } from "@dota-draft/core";
+import { guessRoles, recommend } from "@dota-draft/core";
 import type {
   Bracket,
   BracketData,
@@ -16,20 +16,43 @@ import { POSITION_IDS, effectText, fmt, positionName, summary, verdictText } fro
 import { useI18n } from "./i18n";
 import type { Key, Lang } from "./i18n";
 
-type Team = "ally" | "enemy";
-const MAX: Record<Team, number> = { ally: 4, enemy: 5 };
-const other = (t: Team): Team => (t === "enemy" ? "ally" : "enemy");
-const LANGS: Lang[] = ["ru", "en"];
-const BASE = import.meta.env.BASE_URL;
+type Tone = "ally" | "enemy";
+type Target = "enemy" | Position;
+type AllyMap = Partial<Record<Position, number>>;
+interface RoleInfo {
+  pos: Position;
+  unsure: boolean;
+  prob: number;
+}
 
-function Slot({ hero, tone, onClick }: { hero?: HeroMeta; tone: Team; onClick: () => void }) {
+const MAX_ENEMIES = 5;
+const SURE = 0.6; // ниже этой уверенности роль врага помечается знаком «?»
+const BASE = import.meta.env.BASE_URL;
+const LANGS: Lang[] = ["ru", "en"];
+
+const nextEmptyAlly = (m: AllyMap, own: Position): Position | undefined =>
+  POSITION_IDS.find((p) => p !== own && m[p] === undefined);
+
+function Slot({
+  hero,
+  tone,
+  active,
+  emptyLabel,
+  onClick,
+}: {
+  hero?: HeroMeta;
+  tone: Tone;
+  active?: boolean;
+  emptyLabel: string;
+  onClick: () => void;
+}) {
   const { t } = useI18n();
   return (
     <button
       type="button"
-      className={`slot ${tone} ${hero ? "filled" : ""}`}
+      className={`slot ${tone} ${hero ? "filled" : ""} ${active ? "active" : ""}`}
       onClick={onClick}
-      aria-label={hero ? t("removeHero", { name: hero.localizedName }) : t("emptySlot")}
+      aria-label={hero ? t("removeHero", { name: hero.localizedName }) : emptyLabel}
     >
       <AnimatePresence initial={false}>
         {hero && (
@@ -49,7 +72,7 @@ function Slot({ hero, tone, onClick }: { hero?: HeroMeta; tone: Team; onClick: (
   );
 }
 
-function YouSlot({ preview, role }: { preview?: HeroMeta; role: string }) {
+function YouSlot({ preview }: { preview?: HeroMeta }) {
   const { t } = useI18n();
   return (
     <div className="slot you">
@@ -69,7 +92,6 @@ function YouSlot({ preview, role }: { preview?: HeroMeta; role: string }) {
       </AnimatePresence>
       <span className="you-label">
         <b>{t("you")}</b>
-        <small>{role}</small>
       </span>
     </div>
   );
@@ -96,11 +118,13 @@ function EffectRow({
   kind,
   reason,
   scale,
+  role,
 }: {
   hero: HeroMeta;
   kind: "vs" | "with";
   reason?: Reason;
   scale: number;
+  role?: string;
 }) {
   const { t, lang } = useI18n();
   const effect = reason?.ppEffect;
@@ -109,6 +133,7 @@ function EffectRow({
       <Portrait hero={hero} size="sm" />
       <div>
         <span className="name">{hero.localizedName}</span>
+        {role && <span className="rl">{role}</span>}
         <small>
           {effectText(t, kind, effect)}
           {reason
@@ -131,6 +156,7 @@ function Detail({
   enemies,
   allies,
   byId,
+  roleLabel,
 }: {
   rec: Recommendation;
   hero: HeroMeta;
@@ -138,6 +164,7 @@ function Detail({
   enemies: number[];
   allies: number[];
   byId: Map<number, HeroMeta>;
+  roleLabel: (id: number) => string | undefined;
 }) {
   const { t } = useI18n();
   const nameOf = (id: number) => byId.get(id)?.localizedName ?? String(id);
@@ -155,7 +182,11 @@ function Detail({
         <h3>{title}</h3>
         {ordered(ids, kind).map(({ id, reason }) => {
           const h = byId.get(id);
-          return h && <EffectRow key={id} hero={h} kind={kind} reason={reason} scale={scale} />;
+          return (
+            h && (
+              <EffectRow key={id} hero={h} kind={kind} reason={reason} scale={scale} role={roleLabel(id)} />
+            )
+          );
         })}
       </section>
     );
@@ -209,17 +240,16 @@ export function App() {
   const [bracket, setBracket] = useState<Bracket>("legend_ancient");
   const [data, setData] = useState<BracketData>();
   const [position, setPosition] = useState<Position>(1);
-  const [picks, setPicks] = useState<Record<Team, number[]>>({ ally: [], enemy: [] });
-  const [team, setTeam] = useState<Team>("enemy");
+  const [allyByPos, setAllyByPos] = useState<AllyMap>({});
+  const [enemies, setEnemies] = useState<number[]>([]);
+  const [target, setTarget] = useState<Target>("enemy");
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
   const [baseWeight, setBaseWeight] = useState(0.7);
   const [selectedId, setSelectedId] = useState<number>();
   const input = useRef<HTMLInputElement>(null);
 
-  const [ruNames, setRuNames] = useState<Record<string, string>>({});
-
-    useEffect(() => {
+  useEffect(() => {
     fetch(`${BASE}data/meta.json`).then((r) => r.json()).then(setMeta);
   }, []);
 
@@ -265,52 +295,126 @@ export function App() {
     () => new Map(heroes.map((h): [number, HeroMeta] => [h.id, h])),
     [heroes],
   );
-  const taken = useMemo(() => new Set([...picks.ally, ...picks.enemy]), [picks]);
+
+  const allies = useMemo(
+    () =>
+      POSITION_IDS.flatMap((p) => {
+        const id = allyByPos[p];
+        return p !== position && id !== undefined ? [id] : [];
+      }),
+    [allyByPos, position],
+  );
+  const taken = useMemo(() => new Set([...allies, ...enemies]), [allies, enemies]);
   const results = useMemo(() => searchHeroes(heroes, query, taken), [heroes, query, taken]);
+
+  // Роли врагов: самая правдоподобная расстановка по статистике героев.
+  const guess = useMemo(() => (data ? guessRoles(data, enemies) : undefined), [data, enemies]);
+  const enemyByPos = useMemo(() => {
+    const m: AllyMap = {};
+    enemies.forEach((id, i) => {
+      const pos = guess?.assignment[id] ?? POSITION_IDS[i];
+      if (pos !== undefined) m[pos] = id;
+    });
+    return m;
+  }, [enemies, guess]);
+
+  const roles = useMemo(() => {
+    const m = new Map<number, RoleInfo>();
+    for (const p of POSITION_IDS) {
+      const id = allyByPos[p];
+      if (id !== undefined && p !== position) m.set(id, { pos: p, unsure: false, prob: 1 });
+    }
+    if (guess) {
+      for (const id of enemies) {
+        const pos = guess.assignment[id];
+        if (pos === undefined) continue;
+        const prob = guess.marginals[id]?.[pos] ?? 0;
+        m.set(id, { pos, unsure: prob < SURE, prob });
+      }
+    }
+    return m;
+  }, [allyByPos, position, enemies, guess]);
+
+  const roleLabel = (id: number) => {
+    const r = roles.get(id);
+    return r ? `${positionName(t, r.pos)}${r.unsure ? "?" : ""}` : undefined;
+  };
 
   const rows = useMemo(
     () =>
       data
-        ? recommend(data, position, { allies: picks.ally, enemies: picks.enemy }, { baseWeight, limit: 12 })
+        ? recommend(data, position, { allies, enemies }, { baseWeight, limit: 12 })
         : [],
-    [data, position, picks, baseWeight],
+    [data, position, allies, enemies, baseWeight],
   );
   const selected = rows.find((r) => r.heroId === selectedId) ?? rows[0];
   const selectedHero = selected ? byId.get(selected.heroId) : undefined;
 
+  const focusInput = () => input.current?.focus();
+
+  const changePosition = (p: Position) => {
+    if (p === position) return;
+    // Если на новой позиции уже стоял союзник, он переезжает на освободившуюся.
+    setAllyByPos((prev) => {
+      const next = { ...prev };
+      const moved = next[p];
+      delete next[p];
+      if (moved !== undefined) next[position] = moved;
+      return next;
+    });
+    setTarget((prev) => (prev === p ? position : prev));
+    setPosition(p);
+  };
+
+  const focusTeam = (tone: Tone) => {
+    if (tone === "enemy") setTarget("enemy");
+    else {
+      setTarget(
+        nextEmptyAlly(allyByPos, position) ?? (POSITION_IDS.find((p) => p !== position) as Position),
+      );
+    }
+    focusInput();
+  };
+
   const pick = (id: number) => {
-    if (picks[team].length >= MAX[team]) return;
-    const next = { ...picks, [team]: [...picks[team], id] };
-    setPicks(next);
-    if (next[team].length >= MAX[team] && next[other(team)].length < MAX[other(team)]) {
-      setTeam(other(team));
+    if (target === "enemy") {
+      if (enemies.length >= MAX_ENEMIES) return;
+      const next = [...enemies, id];
+      setEnemies(next);
+      if (next.length >= MAX_ENEMIES) {
+        const a = nextEmptyAlly(allyByPos, position);
+        if (a !== undefined) setTarget(a);
+      }
+    } else {
+      const filled: AllyMap = { ...allyByPos, [target]: id };
+      setAllyByPos(filled);
+      const a = nextEmptyAlly(filled, position);
+      if (a !== undefined) setTarget(a);
+      else if (enemies.length < MAX_ENEMIES) setTarget("enemy");
     }
     setQuery("");
-    input.current?.focus();
-  };
-  const unpick = (tm: Team, id: number) =>
-    setPicks((p) => ({ ...p, [tm]: p[tm].filter((x) => x !== id) }));
-  const focusTeam = (tm: Team) => {
-    setTeam(tm);
-    input.current?.focus();
+    focusInput();
   };
 
-  const renderSlots = (tm: Team) =>
-    Array.from({ length: MAX[tm] }, (_, i) => {
-      const hero = byId.get(picks[tm][i] ?? -1);
-      return (
-        <Slot
-          key={i}
-          hero={hero}
-          tone={tm}
-          onClick={() => (hero ? unpick(tm, hero.id) : focusTeam(tm))}
-        />
-      );
+  const removeAlly = (p: Position) => {
+    setAllyByPos((prev) => {
+      const next = { ...prev };
+      delete next[p];
+      return next;
     });
+    setTarget(p);
+    focusInput();
+  };
+  const removeEnemy = (id: number) => {
+    setEnemies((prev) => prev.filter((x) => x !== id));
+    setTarget("enemy");
+    focusInput();
+  };
 
-  const nEnemies = picks.enemy.length;
-  const nAllies = picks.ally.length;
+  const nEnemies = enemies.length;
+  const nAllies = allies.length;
   const hasDraft = nEnemies + nAllies > 0;
+  const tone: Tone = target === "enemy" ? "enemy" : "ally";
 
   return (
     <MotionConfig reducedMotion="user">
@@ -347,7 +451,7 @@ export function App() {
               type="button"
               className={`pos ${id === position ? "on" : ""}`}
               aria-pressed={id === position}
-              onClick={() => setPosition(id)}
+              onClick={() => changePosition(id)}
             >
               <b>{id}</b>
               {positionName(t, id)}
@@ -374,24 +478,56 @@ export function App() {
         <div className="side ally">
           <button
             type="button"
-            className={`side-title ${team === "ally" ? "on" : ""}`}
+            className={`side-title ${target !== "enemy" ? "on" : ""}`}
             onClick={() => focusTeam("ally")}
           >
-            {t("yourTeam")} <span>{t("countOf", { n: nAllies, m: MAX.ally })}</span>
+            {t("yourTeam")} <span>{t("countOf", { n: nAllies + 1, m: 5 })}</span>
           </button>
           <div className="slots">
-            {renderSlots("ally")}
-            <YouSlot preview={selectedHero} role={positionName(t, position)} />
+            {POSITION_IDS.map((p) => {
+              if (p === position) {
+                return (
+                  <div className="cell" key={p}>
+                    <YouSlot preview={selectedHero} />
+                    <span className="role-tag">{positionName(t, p)}</span>
+                  </div>
+                );
+              }
+              const hero = byId.get(allyByPos[p] ?? -1);
+              return (
+                <div className="cell" key={p}>
+                  <Slot
+                    hero={hero}
+                    tone="ally"
+                    active={target === p}
+                    emptyLabel={t("slotAlly", { pos: positionName(t, p) })}
+                    onClick={() => {
+                      if (hero) removeAlly(p);
+                      else {
+                        setTarget(p);
+                        focusInput();
+                      }
+                    }}
+                  />
+                  <span className="role-tag">{positionName(t, p)}</span>
+                </div>
+              );
+            })}
           </div>
+          <p className="strip-note">{t("allyRolesNote")}</p>
         </div>
 
-        <div className={`finder ${team}`}>
+        <div className={`finder ${tone}`}>
           <div className="field">
             <input
               ref={input}
               autoFocus
               value={query}
-              placeholder={team === "enemy" ? t("placeholderEnemy") : t("placeholderAlly")}
+              placeholder={
+                target === "enemy"
+                  ? t("placeholderEnemy")
+                  : t("placeholderAllySlot", { pos: positionName(t, target) })
+              }
               aria-label={t("searchAria")}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -404,10 +540,15 @@ export function App() {
                   setCursor((c) => Math.max(c - 1, 0));
                 } else if (e.key === "Tab" && !e.shiftKey) {
                   e.preventDefault();
-                  setTeam(other(team));
+                  focusTeam(target === "enemy" ? "ally" : "enemy");
                 } else if (e.key === "Escape") setQuery("");
-                else if (e.key === "Backspace" && !query && picks[team].length) {
-                  unpick(team, picks[team][picks[team].length - 1] ?? -1);
+                else if (e.key === "Backspace" && !query) {
+                  if (target === "enemy") {
+                    const last = enemies[enemies.length - 1];
+                    if (last !== undefined) removeEnemy(last);
+                  } else if (allyByPos[target] !== undefined) {
+                    removeAlly(target);
+                  }
                 }
               }}
             />
@@ -429,18 +570,42 @@ export function App() {
               </ul>
             )}
           </div>
-          <p className="hint">{t("hint")}</p>
+          <p className="hint">{t("hintRoles")}</p>
         </div>
 
         <div className="side enemy">
           <button
             type="button"
-            className={`side-title ${team === "enemy" ? "on" : ""}`}
+            className={`side-title ${target === "enemy" ? "on" : ""}`}
             onClick={() => focusTeam("enemy")}
           >
-            {t("enemies")} <span>{t("countOf", { n: nEnemies, m: MAX.enemy })}</span>
+            {t("enemies")} <span>{t("countOf", { n: nEnemies, m: MAX_ENEMIES })}</span>
           </button>
-          <div className="slots">{renderSlots("enemy")}</div>
+          <div className="slots">
+            {POSITION_IDS.map((p) => {
+              const id = enemyByPos[p];
+              const hero = id !== undefined ? byId.get(id) : undefined;
+              const info = id !== undefined ? roles.get(id) : undefined;
+              return (
+                <div className="cell" key={p}>
+                  <Slot
+                    hero={hero}
+                    tone="enemy"
+                    emptyLabel={t("emptySlot")}
+                    onClick={() => (hero ? removeEnemy(hero.id) : focusTeam("enemy"))}
+                  />
+                  <span
+                    className={`role-tag ${info?.unsure ? "unsure" : ""}`}
+                    title={info ? t("roleSure", { p: Math.round(info.prob * 100) }) : undefined}
+                  >
+                    {positionName(t, p)}
+                    {info?.unsure ? "?" : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="strip-note">{t("enemyRolesNote")}</p>
         </div>
       </section>
 
@@ -525,9 +690,10 @@ export function App() {
                 rec={selected}
                 hero={selectedHero}
                 position={position}
-                enemies={picks.enemy}
-                allies={picks.ally}
+                enemies={enemies}
+                allies={allies}
                 byId={byId}
+                roleLabel={roleLabel}
               />
             )}
           </AnimatePresence>
