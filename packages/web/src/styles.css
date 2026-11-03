@@ -200,3 +200,77 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .strip-note { max-width: 60ch; margin: 10px 0 0; font-size: 12.5px; color: var(--ink-dim); }
 .slot.active, .slot.filled.active { outline: 2px solid var(--team); outline-offset: -2px; }
 .effect .rl { margin-left: 8px; font-size: 12.5px; color: var(--ink-dim); }
+
+/* Импорт из скриншота */
+.import-btn { padding: 8px 14px; border-radius: 6px; background: var(--raised); color: var(--ink); font-weight: 500; transition: background 0.15s; }
+.import-btn:hover { background: var(--line); }
+.modal-back { position: fixed; inset: 0; z-index: 50; display: grid; place-items: start center; padding: 4vh 16px; overflow: auto; background: rgba(8, 12, 15, 0.72); }
+.modal { width: min(1100px, 100%); padding: 24px clamp(16px, 2.5vw, 32px) 28px; background: var(--surface); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.modal-head h2 { margin: 0; font: 700 20px "Unbounded", sans-serif; }
+.modal .x { padding: 2px 10px; font-size: 26px; line-height: 1; color: var(--ink-dim); }
+.modal .how { max-width: 70ch; margin: 0 0 16px; color: var(--ink-dim); }
+.dropzone { display: grid; place-items: center; gap: 12px; padding: 48px 16px; text-align: center; border: 1px dashed var(--line); color: var(--ink-dim); }
+.btn { display: inline-block; padding: 8px 14px; border-radius: 6px; background: var(--raised); color: var(--ink); font-weight: 500; cursor: pointer; }
+.btn.primary { background: var(--gain); color: var(--ground); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.step { margin: 18px 0 8px; font-size: 14px; font-weight: 600; color: var(--ink-dim); }
+.seg-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg-row button:not(.btn) { padding: 7px 14px; border-radius: 6px; background: var(--raised); color: var(--ink-dim); }
+.seg-row button.on { background: var(--ink); color: var(--ground); font-weight: 600; }
+.shot { position: relative; width: 100%; max-width: 980px; margin-top: 8px; }
+.shot img { display: block; width: 100%; height: auto; user-select: none; }
+.frame { position: absolute; box-sizing: border-box; border: 2px solid var(--team); pointer-events: none; }
+.frame.ally { --team: var(--radiant); }
+.frame.enemy { --team: var(--dire); }
+.layout-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 24px; margin: 12px 0; }
+.layout-grid label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-dim); }
+.layout-grid input { accent-color: var(--gain); }
+.import-teams { display: grid; gap: 22px; margin-top: 12px; }
+.import-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.slot-card { display: grid; align-content: start; gap: 6px; min-width: 0; }
+.slot-card.me { opacity: 0.55; }
+.crop { max-width: 100%; background-color: var(--sunken); background-repeat: no-repeat; }
+.slot-card select { width: 100%; padding: 4px; border: 0; background: var(--sunken); color: var(--ink); font: inherit; font-size: 13px; }
+.cand { display: flex; align-items: center; gap: 6px; width: 100%; padding: 3px 6px 3px 3px; background: var(--sunken); font-size: 12.5px; }
+.cand span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cand em { font-style: normal; color: var(--ink-dim); }
+.cand.on { outline: 2px solid var(--gain); outline-offset: -2px; }
+.cand.weak em { color: var(--loss); }
+.import-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.import-note { margin: 6px 0 0; font-size: 13px; color: var(--ink-dim); }
+.err { color: var(--loss); }
+
+/* Импорт из скриншота: карточки */
+.imp-shot { display: block; width: 100%; height: auto; margin: 4px 0 10px; opacity: 0.92; }
+.imp-working { padding: 36px 8px; color: var(--ink-dim); }
+.imp-side { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+.imp-hint { margin: 10px 0 0; padding: 10px 14px; background: var(--raised); }
+.imp-hint.need { outline: 2px solid var(--gain); outline-offset: -2px; }
+.imp-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.imp-card { --team: var(--radiant); display: grid; align-content: start; gap: 6px; min-width: 0; }
+.imp-card.enemy { --team: var(--dire); }
+.imp-face { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sunken); outline: 1px dashed color-mix(in srgb, var(--team) 50%, transparent); outline-offset: -1px; }
+.imp-face::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--team); }
+.imp-card.unsure .imp-face { outline: 2px dashed var(--loss); outline-offset: -2px; }
+.imp-card.me .imp-face { outline: 3px solid var(--gain); outline-offset: -3px; }
+.imp-blank { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; color: var(--ink-dim); }
+.imp-badge { position: absolute; left: 6px; top: 6px; z-index: 2; padding: 1px 8px; background: var(--gain); color: var(--ground); font-size: 12.5px; font-weight: 600; }
+.imp-q { position: absolute; right: 6px; top: 6px; z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--loss); color: var(--ground); font-weight: 700; }
+.imp-name { min-height: 1.4em; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.imp-role { justify-self: start; padding: 3px 10px; border-radius: 999px; background: var(--raised); color: var(--ink); font-size: 13px; }
+.imp-role.guess { font-style: italic; color: var(--ink-dim); }
+.imp-roles { display: flex; flex-wrap: wrap; gap: 4px; }
+.imp-roles button { padding: 3px 8px; border-radius: 4px; background: var(--sunken); font-size: 12.5px; }
+.imp-roles button.on { background: var(--ink); color: var(--ground); }
+.imp-link { justify-self: start; padding: 0; font-size: 13px; text-align: left; text-decoration: underline; text-underline-offset: 3px; color: var(--ink-dim); }
+.imp-link:hover { color: var(--ink); }
+.imp-picker { display: grid; gap: 6px; padding: 8px; background: var(--sunken); }
+.imp-picker input { width: 100%; padding: 6px 8px; border: 0; border-bottom: 2px solid var(--line); background: var(--raised); color: var(--ink); font: inherit; outline: none; }
+.imp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.imp-chip { display: flex; align-items: center; gap: 6px; padding: 2px 8px 2px 2px; background: var(--raised); font-size: 12.5px; }
+.imp-chip em { font-style: normal; color: var(--ink-dim); }
+.imp-adjust, .imp-debug { margin-top: 18px; font-size: 13.5px; color: var(--ink-dim); }
+.imp-adjust summary, .imp-debug summary { cursor: pointer; }
+.imp-debug pre { margin: 8px 0 0; font-size: 12px; white-space: pre-wrap; color: var(--ink); }
+@media (max-width: 720px) { .imp-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

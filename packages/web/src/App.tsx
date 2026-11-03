@@ -14,6 +14,7 @@ import type { Hero } from "./heroes";
 import { GROUPS, RankMedal } from "./ranks";
 import { POSITION_IDS, effectText, fmt, positionName, summary, verdictText } from "./copy";
 import { useI18n } from "./i18n";
+import { ScreenshotImport } from "./vision/ScreenshotImport";
 import type { Key, Lang } from "./i18n";
 
 type Tone = "ally" | "enemy";
@@ -411,6 +412,15 @@ export function App() {
     focusInput();
   };
 
+    const applyImport = (r: { position: Position; allyByPos: AllyMap; enemies: number[] }) => {
+    setPosition(r.position);
+    setAllyByPos(r.allyByPos);
+    setEnemies(r.enemies);
+    setSelectedId(undefined);
+    setQuery("");
+    const nextAlly = nextEmptyAlly(r.allyByPos, r.position);
+    setTarget(r.enemies.length < MAX_ENEMIES ? "enemy" : (nextAlly ?? "enemy"));
+  };
   const nEnemies = enemies.length;
   const nAllies = allies.length;
   const hasDraft = nEnemies + nAllies > 0;
@@ -458,6 +468,8 @@ export function App() {
             </button>
           ))}
         </div>
+
+                        <ScreenshotImport heroes={heroes} data={data} onApply={applyImport} />
 
         <div className="lang" role="group" aria-label={t("langLabel")}>
           {LANGS.map((l) => (

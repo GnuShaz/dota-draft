@@ -29,7 +29,7 @@ const DOCS: Record<DocId, Record<Lang, LegalDoc>> = {
         {
           h: "3. Данные в вашем браузере",
           p: [
-            "Сайт сохраняет в localStorage вашего браузера один параметр: выбранный язык интерфейса. Он нужен для работы интерфейса, не содержит сведений о вас и не передаётся на сервер. Cookie-файлы Сайт не устанавливает. Сохранённые данные можно удалить в настройках браузера.",
+            "Сайт сохраняет в localStorage вашего браузера один параметр: выбранный язык интерфейса. Он нужен для работы интерфейса, не содержит сведений о вас и не передаётся на сервер. Для распознавания текста на скриншотах браузер может сохранить в IndexedDB файлы языковой модели, чтобы не скачивать их повторно. Cookie-файлы Сайт не устанавливает. Сохранённые данные можно удалить в настройках браузера.",
           ],
         },
         {
@@ -75,7 +75,7 @@ const DOCS: Record<DocId, Record<Lang, LegalDoc>> = {
         {
           h: "3. Data in your browser",
           p: [
-            "The Site stores one setting in your browser’s localStorage: the interface language. It is needed for the interface to work, contains no information about you and is not sent to a server. The Site sets no cookies. You can delete stored data in your browser settings.",
+            "The Site stores one setting in your browser’s localStorage: the interface language. It is needed for the interface to work, contains no information about you and is not sent to a server. To recognise text in screenshots, the browser may keep language-model files in IndexedDB so they need not be downloaded again. The Site sets no cookies. You can delete stored data in your browser settings.",
           ],
         },
         {

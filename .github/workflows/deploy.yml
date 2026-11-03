@@ -39,6 +39,14 @@ jobs:
         run: pnpm snapshot
         env:
           STRATZ_TOKEN: ${{ secrets.STRATZ_TOKEN }}
+      
+      - name: Собрать эталоны для распознавания скриншотов
+        run: pnpm portraits:build
+        continue-on-error: true # не вышло, сайт просто работает без распознавания
+
+      - name: Подготовить распознавание текста на скриншотах
+        run: pnpm ocr:assets
+        continue-on-error: true # не вышло: сайт предположит роли по статистике
 
       - run: pnpm export:web
 

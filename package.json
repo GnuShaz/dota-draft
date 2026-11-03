@@ -17,7 +17,9 @@
     "probe:week": "tsx packages/pipeline/src/probe-week.ts",
     "snapshot": "tsx packages/pipeline/src/build-snapshot.ts",
     "demo": "tsx packages/pipeline/src/demo.ts",
-    "ranks:fetch": "tsx packages/pipeline/src/fetch-ranks.ts"
+    "ranks:fetch": "tsx packages/pipeline/src/fetch-ranks.ts",
+    "portraits:build": "tsx packages/pipeline/src/build-portraits.ts",
+    "ocr:assets": "tsx packages/pipeline/src/ocr-assets.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
